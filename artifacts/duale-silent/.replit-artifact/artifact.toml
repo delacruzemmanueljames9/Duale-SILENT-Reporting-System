@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Duale SILENT Reporting System"
+description = "A calm, secure reporting and oversight platform for Barangay Duale that lets people send anonymous child-safety signals and helps authorized responders triage them safely."
+version = "1.0.0"
+id = "artifacts/duale-silent"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25468
+
+[services.development]
+run = "pnpm --filter @workspace/duale-silent run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/duale-silent", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/duale-silent/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25468"
+BASE_PATH = "/"

@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: reports
+    description: Public reports and responder workflows
+  - name: oversight
+    description: Aggregated oversight reporting
 paths:
   /healthz:
     get:
@@ -24,6 +28,153 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /reports:
+    get:
+      operationId: listReports
+      tags: [reports]
+      summary: List reports for the operations deck
+      responses:
+        "200":
+          description: Reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+    post:
+      operationId: createReport
+      tags: [reports]
+      summary: Send a new public or physical report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportCreated"
+  /reports/{trackingCode}:
+    get:
+      operationId: getReportByTrackingCode
+      tags: [reports]
+      summary: Check the status of a report without logging in
+      parameters:
+        - name: trackingCode
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Public report status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportStatus"
+        "404":
+          description: Tracking code not found
+  /reports/{reportId}/status:
+    patch:
+      operationId: updateReportStatus
+      tags: [reports]
+      summary: Move a report through triage
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportStatusInput"
+      responses:
+        "200":
+          description: Updated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+  /reports/{reportId}/escalate:
+    post:
+      operationId: escalateReport
+      tags: [reports]
+      summary: Escalate a report to the PNP WCPD
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Escalated report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Report"
+  /reports/{reportId}/notes:
+    post:
+      operationId: addCaseNote
+      tags: [reports]
+      summary: Add an internal case note
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CaseNoteInput"
+      responses:
+        "201":
+          description: Note added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaseNote"
+  /feedback:
+    post:
+      operationId: createFeedback
+      tags: [reports]
+      summary: Send anonymous feedback about the reporting experience
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackInput"
+      responses:
+        "201":
+          description: Feedback received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackReceipt"
+  /oversight/stats:
+    get:
+      operationId: getOversightStats
+      tags: [oversight]
+      summary: Read anonymized monthly statistics
+      responses:
+        "200":
+          description: Oversight statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OversightStats"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +184,107 @@ components:
           type: string
       required:
         - status
+    Report:
+      type: object
+      required: [id, trackingCode, isAnonymous, description, urgency, status, source, escalatedToPnp, createdAt, updatedAt, notes]
+      properties:
+        id: { type: string }
+        trackingCode: { type: string }
+        isAnonymous: { type: boolean }
+        reporterContact: { type: ["string", "null"] }
+        description: { type: string }
+        peopleInvolved: { type: ["string", "null"] }
+        incidentDatetime: { type: ["string", "null"] }
+        urgency: { type: string, enum: [emergency, soon, general] }
+        status: { type: string, enum: [new, under_review, referred, resolved, closed] }
+        source: { type: string, enum: [digital, physical_dropbox] }
+        escalatedToPnp: { type: boolean }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+        notes:
+          type: array
+          items: { $ref: "#/components/schemas/CaseNote" }
+    ReportInput:
+      type: object
+      required: [isAnonymous, description, urgency, source]
+      properties:
+        isAnonymous: { type: boolean }
+        reporterContact: { type: ["string", "null"] }
+        description: { type: string, minLength: 10 }
+        peopleInvolved: { type: ["string", "null"] }
+        incidentDatetime: { type: ["string", "null"] }
+        urgency: { type: string, enum: [emergency, soon, general] }
+        source: { type: string, enum: [digital, physical_dropbox] }
+    ReportCreated:
+      type: object
+      required: [trackingCode, message]
+      properties:
+        trackingCode: { type: string }
+        message: { type: string }
+    ReportStatus:
+      type: object
+      required: [trackingCode, status, urgency, createdAt, lastUpdatedAt, publicMessage]
+      properties:
+        trackingCode: { type: string }
+        status: { type: string, enum: [new, under_review, referred, resolved, closed] }
+        urgency: { type: string, enum: [emergency, soon, general] }
+        createdAt: { type: string }
+        lastUpdatedAt: { type: string }
+        publicMessage: { type: string }
+    ReportStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [new, under_review, referred, resolved, closed] }
+    CaseNote:
+      type: object
+      required: [id, authorName, note, visibleToPnp, createdAt]
+      properties:
+        id: { type: string }
+        authorName: { type: string }
+        note: { type: string }
+        visibleToPnp: { type: boolean }
+        createdAt: { type: string }
+    CaseNoteInput:
+      type: object
+      required: [note, visibleToPnp]
+      properties:
+        note: { type: string, minLength: 2 }
+        visibleToPnp: { type: boolean }
+    FeedbackInput:
+      type: object
+      required: [comfortRating]
+      properties:
+        comfortRating: { type: integer, minimum: 1, maximum: 5 }
+        comments: { type: ["string", "null"] }
+    FeedbackReceipt:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    OversightStats:
+      type: object
+      required: [totalReports, urgentReports, resolutionRate, averageResponseHours, monthly, categories]
+      properties:
+        totalReports: { type: integer }
+        urgentReports: { type: integer }
+        resolutionRate: { type: number }
+        averageResponseHours: { type: number }
+        monthly:
+          type: array
+          items:
+            type: object
+            required: [month, reports, resolved]
+            properties:
+              month: { type: string }
+              reports: { type: integer }
+              resolved: { type: integer }
+        categories:
+          type: array
+          items:
+            type: object
+            required: [label, value]
+            properties:
+              label: { type: string }
+              value: { type: integer }
 

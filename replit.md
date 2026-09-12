@@ -1,6 +1,6 @@
-# [Project name]
+# Duale SILENT Reporting System
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An anonymous-capable child protection reporting and oversight platform for Barangay Duale, Limay, Bataan.
 
 ## Run & Operate
 
@@ -9,28 +9,38 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Preview env: `VITE_API_BASE_URL=/api`; Supabase deployment variables are documented in `artifacts/duale-silent/.env.example`.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
+- Frontend: React + Vite + TypeScript + Tailwind CSS
+- API: Express 5 under `/api`
+- Production data model: Supabase Postgres + Auth + RLS + private Storage
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/duale-silent` — public reporting and responder web app
+- `artifacts/api-server/src/routes/reports.ts` — preview API and seeded cases
+- `lib/api-spec/openapi.yaml` — API source of truth
+- `artifacts/duale-silent/supabase/migrations/001_silent_reporting.sql` — Supabase tables and RLS
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The public flow uses a light calm room while responder views use the dark operations deck.
+- Preview data lives in the API process so the app works without secrets; Supabase migration files define the production boundary.
+- Tracking codes are the only public status identifier; public status responses never expose free text or contact data.
+- The API contract is generated from OpenAPI before frontend work.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Public report submission with anonymous or identified choice, emergency warning, and tracking code receipt.
+- Anonymous status lookup and youth feedback.
+- DCPC triage with status changes, notes, and PNP escalation.
+- PNP restricted view and anonymized oversight statistics.
 
 ## User preferences
 
