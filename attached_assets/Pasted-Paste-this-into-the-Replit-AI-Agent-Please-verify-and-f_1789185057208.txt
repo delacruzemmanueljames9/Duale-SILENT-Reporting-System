@@ -1,0 +1,47 @@
+Paste this into the Replit AI Agent:
+
+---
+
+Please verify and fix the authentication setup for the Duale SILENT Reporting System so it matches this exact requirement:
+
+**1. Public reporting pages must NEVER require login:**
+- `/report` (the main digital reporting form)
+- `/status/[code]` (tracking code lookup)
+- `/feedback` (anonymous youth feedback form)
+- The public landing page
+
+Confirm these routes are NOT wrapped in any auth check, middleware, or protected route guard. Anyone visiting these URLs must be able to use them immediately with zero sign-up, zero login, and zero account creation of any kind. If any of these currently redirect to a login page or check for a session, remove that check.
+
+**2. Staff/authenticated pages must REQUIRE login and enforce role-based access:**
+- `/dashboard` — DCPC Officer and DCPC Chair only
+- `/pnp` — PNP WCPD Supervisor only
+- `/oversight` — Oversight Committee Member only
+- `/intake/physical` — DCPC Officer and DCPC Chair only
+
+Confirm that:
+- Visiting any of these routes without an active session redirects to a `/login` page
+- After login, the user's role is checked against the `profiles` table, and they are shown only the dashboard appropriate to their role (not all four)
+- This is enforced both in the UI (don't render the page) AND at the database level via Supabase Row Level Security policies — not just a client-side redirect that could be bypassed
+
+**3. Set up initial staff accounts in Supabase Auth (do this via the Supabase dashboard/API, NOT hardcoded in the source code):**
+
+Create these four accounts and assign the matching role in the `profiles` table:
+
+| Email | Password | Role (profiles.role value) |
+|---|---|---|
+| ejdelacruz.dcpc@gmail.com | Duale-Guard2026! | dcpc_chair |
+| officer1.dcpc@gmail.com | Silent-Watch2026! | dcpc_officer |
+| wcpd.limay@gmail.com | Bantay-Bata2026! | pnp_supervisor |
+| oversight.dcpc@gmail.com | Youth-Voice2026! | oversight_member |
+
+(Replace the placeholder emails with the real ones I provide before going live — for now use these as-is to set up and test the flow.)
+
+**4. Add a "force password change on first login" flow if Supabase Auth supports it, or at minimum a clearly visible "Change Password" option in each dashboard, since these initial passwords will be shared with real people and should be changed after first login.**
+
+**5. After making these changes, test and confirm explicitly:**
+- Visiting `/report` in an incognito/private window loads the form directly with no login prompt
+- Visiting `/dashboard` in an incognito/private window redirects to `/login`
+- Logging in with the dcpc_chair account shows full access; logging in with the pnp_supervisor account shows only escalated cases and cannot edit report content
+- No credentials appear anywhere in the source code — confirm they only exist in Supabase Auth's user table
+
+Report back exactly what you changed and the result of each test above.
